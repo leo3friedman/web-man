@@ -1,37 +1,43 @@
-const canvasDiv = document.getElementById('canvas-div')
-
-let config = {
-    type: Phaser.AUTO,
-    width: canvasDiv.offsetWidth,
-    height: canvasDiv.offsetHeight,
-    parent: 'canvas-div',
-    transparent: true,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: {y: 1100},
-            debug: false
+let canvasDiv
+window.onload = function(){
+    const div = document.createElement('div')
+    document.body.appendChild(div)
+    div.id = 'canvas-div'
+    canvasDiv = document.getElementById('canvas-div')
+    const config = {
+        type: Phaser.AUTO,
+        width: canvasDiv.offsetWidth,
+        height: canvasDiv.offsetHeight,
+        parent: 'canvas-div',
+        transparent: true,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                gravity: {y: 1100},
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
         }
-    },
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
     }
+    let game = new Phaser.Game(config);
 }
-//hello
-
-let game = new Phaser.Game(config);
 
 function preload() {
-    this.load.spritesheet('playerSpriteSheet', 'assets/player_sprite_sheet.png', {frameWidth: 40, frameHeight: 37});
-    this.load.spritesheet('platformSpriteSheet', 'assets/platform_sprite_sheet.png', {frameWidth: 60, frameHeight: 10});
+    this.load.spritesheet('playerSpriteSheet', chrome.runtime.getURL('assets/player_sprite_sheet.png'), {frameWidth: 40, frameHeight: 37});
+    // this.load.spritesheet('playerSpriteSheet', 'assets/player_sprite_sheet.png', {frameWidth: 40, frameHeight: 37});
+    this.load.spritesheet('platformSpriteSheet', chrome.runtime.getURL('assets/platform_sprite_sheet.png'), {frameWidth: 60, frameHeight: 10});
+    // this.load.spritesheet('platformSpriteSheet', 'assets/platform_sprite_sheet.png', {frameWidth: 60, frameHeight: 10});
 }
 
 let player;
 let platforms;
 
 function create() {
+
     platforms = this.physics.add.staticGroup();
     player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
     player.setBounce(0);
@@ -182,3 +188,6 @@ window.addEventListener("keydown", function (event) {
 window.addEventListener("keyup", function (event) {
     keys[event.key] = false;
 });
+window.addEventListener('resize', function(event){
+    location.reload()
+})

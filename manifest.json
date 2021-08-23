@@ -1,0 +1,31 @@
+{
+  "name": "wwww",
+  "version": "0.1",
+  "description": "wwww",
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_start",
+      "css": ["stylesheet.css"],
+      "js": ["phaser.js","main.js"]
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/player_sprite_sheet.png",
+      "32": "assets/player_sprite_sheet.png",
+      "48": "assets/player_sprite_sheet.png",
+      "128": "assets/player_sprite_sheet.png"
+    }
+  },
+  "web_accessible_resources": ["assets/*.png"],
+  "icons": {
+    "16": "assets/player_sprite_sheet.png",
+    "32": "assets/player_sprite_sheet.png",
+    "48": "assets/player_sprite_sheet.png",
+    "128": "assets/player_sprite_sheet.png"
+  },
+  "manifest_version": 2
+}
