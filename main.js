@@ -1,7 +1,7 @@
 let isCLicking = false;
 let canvasDiv
 let scrollDiv
-let anchors
+let anchorsInView = []
 let numJumps = 0;
 let player;
 let platforms;
@@ -12,7 +12,6 @@ let isGrounded
 let platformSprites = [];
 let canPlatform = true;
 let keys = {}
-let isFirstTimeCallingCreateFunction = true
 let game
 
 // TODO: is there a better way to detect that we're in a chrome extension
@@ -35,7 +34,6 @@ function preload() {
 }
 
 function create() {
-    if (isFirstTimeCallingCreateFunction) {
         platforms = this.physics.add.staticGroup();
         player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
         player.setBounce(0);
@@ -73,7 +71,7 @@ function create() {
         })
         this.physics.add.collider(player, platforms);
         buildPlatform()
-    }
+
     // anchors.forEach((element) => {
     //     const dim = element.getBoundingClientRect()
     //     body = this.add.rectangle(dim.x + dim.width / 2 + window.scrollX, dim.y + window.scrollY, dim.width, 1, 0x6666ff)
@@ -150,7 +148,7 @@ function jump() {
         player.setVelocityY(-500);
         canJump = false
         numJumps += 1;
-        console.log(numJumps)
+        // console.log(numJumps)
         setTimeout(() => {
             canJump = true
         }, 300)
@@ -189,6 +187,9 @@ function buildPlatform() {
     if (canPlatform && !isGrounded) {
         let platformOffset = player.body.velocity.y > 0 ? 50 : 20
         const platform = platforms.create(player.x, player.y + platformOffset, 'platformSpriteSheet')
+        platform.startingX = platform.x
+        platform.startingY = platform.y
+        platform.startingScrollY = window.scrollY
         platformSprites.push(platform)
         platform.anims.play('platform')
         canPlatform = false
@@ -238,12 +239,12 @@ function scrollToPlayer() {
     window.scrollTo(scrollDiv)
 }
 
-function rebuildAnchorBodies() {
-    anchors = []
-    anchors = document.querySelectorAll('a[href]')
-    isFirstTimeCallingCreateFunction = false
-    create()
-}
+// function rebuildAnchorBodies() {
+//     anchors = []
+//     anchors = document.querySelectorAll('a[href]')
+//     isFirstTimeCallingCreateFunction = false
+//     create()
+// }
 
 function fullDocumentDims() {
     return {
@@ -257,34 +258,94 @@ function fullDocumentDims() {
             document.body.clientWidth, document.documentElement.clientWidth)
     }
 }
-
+function distance(x1,y1,x2,y2){
+    return Math.sqrt(Math.pow((x2-x1),2) + Math.pow((y2-y1),2))
+}
+function anchorCenter(anchor){
+    let center = {};
+    const dim = anchor.getBoundingClientRect()
+    center.x = dim.left + dim.width / 2
+    center.y = dim.top + dim.height / 2
+    return center
+}
+function buildAnchorBody(anchor, scene){
+    const included = (element) => element.domElement === anchor;
+    if(!anchorBodies.some(included)){
+        const dim = anchor.getBoundingClientRect()
+        const body = scene.add.rectangle(dim.x + dim.width/2, dim.y + dim.height/2, dim.width, dim.height, 0x6666ff)
+        // const body = scene.add.rectangle(dim.x + dim.width/2 + window.scrollX, dim.y + dim.height/2 - window.scrollY, dim.width, dim.height, 0x6666ff)
+        body.domElement = anchor
+        body.startingX = body.x
+        body.startingY = body.y
+        body.startingScrollY = window.scrollY
+        anchorBodies.push(body)
+        //     body.setVisible(false)
+        scene.physics.add.staticGroup(body)
+        scene.physics.add.collider(player, body)
+    }
+}
+function deleteAnchorBody(anchor){
+    const included = (element) => element.domElement === anchor;
+    if(anchorBodies.some(included)){
+        anchorBodies.forEach((anchorBody)=>{
+            if(anchorBody.domElement === anchor){
+                anchorBody.destroy()
+                const index = anchorBodies.indexOf(anchorBody);
+                anchorBodies.splice(index, 1)
+            }
+        })
+    }
+}
+function isInRange(anchor, player){
+    const aCenter = anchorCenter(anchor)
+    return distance(aCenter.x, aCenter.y, player.x, player.y) < 200
+}
 function update() {
     clampScrollDivToPlayer()
     anchorClickHandler()
     platformHandler()
     movementHandler()
     checkIfGrounded()
+
+    const scene = this
+    anchorsInView.forEach((anchor)=>{
+        if(isInRange(anchor, player)) {
+            buildAnchorBody(anchor, scene)
+        }else{
+            deleteAnchorBody(anchor);
+        }
+    })
+}
+
+function findAnchors(){
+   const windowTop = window.scrollY;
+   const windowBottom = canvasDiv.offsetHeight + window.scrollY;
+   document.querySelectorAll('a[href]').forEach((anchor)=>{
+       if(anchor.getBoundingClientRect().top >= windowTop && anchor.getBoundingClientRect().top <= windowBottom){
+           anchorsInView.push(anchor)
+       }
+   })
 }
 
 window.onload = function () {
-    const fullDims = fullDocumentDims()
-    const divC = document.createElement('div')
+    // const fullDims = fullDocumentDims()
     // anchors = document.querySelectorAll('a[href]')
-    document.body.appendChild(divC)
-    divC.id = 'canvas-div'
-    canvasDiv = document.getElementById('canvas-div')
-    canvasDiv.style.height = fullDims.height + 'px'
-    canvasDiv.style.width = fullDims.width + 'px'
-    const divScroll = document.createElement('div')
-    canvasDiv.appendChild(divScroll)
-    divScroll.id = 'scroll-div'
-    scrollDiv = document.getElementById('scroll-div')
+    // canvasDiv.style.height = fullDims.height + 'px'
+    // canvasDiv.style.width = fullDims.width + 'px'
+    canvasDiv = document.createElement('div')
+    canvasDiv.id = 'canvas-div'
+    document.body.appendChild(canvasDiv)
+
+    scrollDiv = document.createElement('div')
+    scrollDiv.id = 'scroll-div'
+    canvasDiv.appendChild(scrollDiv)
+
+    findAnchors()
+
     const config = {
         type: Phaser.AUTO,
-        width: fullDims.width,
-        // width: canvasDiv.offsetWidth,
-        height: fullDims.height,
-        // height: canvasDiv.offsetHeight,
+        width: canvasDiv.offsetWidth,
+        height: canvasDiv.offsetHeight,
         parent: 'canvas-div',
         transparent: true,
         physics: {
@@ -309,10 +370,31 @@ window.onunload = function (){
 
 window.addEventListener("keydown", function (event) {
     keys[event.key] = true;
-    console.log(event.key)
+    // console.log(event.key)
 });
 window.addEventListener("keyup", function (event) {
     keys[event.key] = false;
+});
+window.addEventListener("scroll", function (event) {
+    // canvasDiv.style.top = window.scrollY + 'px'
+    // platforms.children.entries.forEach((platform)=>{
+    //     platform.setPosition(platform.startingX, platform.startingY - window.scrollY)
+    // })
+
+    platformSprites.forEach((platform)=>{
+        if(platform && platform.body){
+            platform.setPosition(platform.startingX, platform.startingY - (window.scrollY - platform.startingScrollY))
+            platform.body.y = (platform.startingY - (window.scrollY - platform.startingScrollY))
+        }
+    })
+    anchorBodies.forEach((anchorBody)=>{
+        if(anchorBody && anchorBody.body){
+            anchorBody.setPosition(anchorBody.startingX, anchorBody.startingY - (window.scrollY- anchorBody.startingScrollY))
+            anchorBody.body.y = (anchorBody.startingY - (window.scrollY-anchorBody.startingScrollY))
+        }
+    })
+    anchorsInView = []
+    findAnchors()
 });
 // window.addEventListener('resize', function (event) {
 //     rebuildAnchorBodies()
