@@ -2,6 +2,7 @@ let isCLicking = false;
 let canvasDiv
 let scrollDiv
 let anchorsInView = []
+let buttonsInView = []
 let numJumps = 0;
 let player;
 let platforms;
@@ -13,12 +14,16 @@ let platformSprites = [];
 let canPlatform = true;
 let keys = {}
 let game
+let bodySize;
+let canClick = true;
 
 // TODO: is there a better way to detect that we're in a chrome extension
-function isInExtension() { return chrome && chrome.runtime && chrome.runtime.getURL }
+function isInExtension() {
+    return chrome && chrome.runtime && chrome.runtime.getURL
+}
 
 function resolveUrl(url) {
-  return isInExtension() ? chrome.runtime.getURL(url) : url
+    return isInExtension() ? chrome.runtime.getURL(url) : url
 }
 
 function preload() {
@@ -34,43 +39,45 @@ function preload() {
 }
 
 function create() {
-        platforms = this.physics.add.staticGroup();
-        player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
-        player.setBounce(0);
-        player.setCollideWorldBounds(true);
-        player.body.checkCollision.up = false
-        this.anims.create({
-            key: 'breathe',
-            frames: this.anims.generateFrameNumbers('playerSpriteSheet', {start: 0, end: 3}),
-            frameRate: 5,
-        });
-        this.anims.create({
-            key: 'move_right',
-            frames: this.anims.generateFrameNumbers('playerSpriteSheet', {start: 6, end: 9}),
-            frameRate: 6,
-        });
-        this.anims.create({
-            key: 'jump_straight',
-            frames: [{key: 'playerSpriteSheet', frame: 5}],
-            frameRate: 10
-        });
-        this.anims.create({
-            key: 'jump_right',
-            frames: [{key: 'playerSpriteSheet', frame: 4}],
-            frameRate: 10
-        })
-        this.anims.create({
-            key: 'click',
-            frames: this.anims.generateFrameNumbers('playerSpriteSheet', {start: 10, end: 14}),
-            frameRate: 6,
-        })
-        this.anims.create({
-            key: 'platform',
-            frames: this.anims.generateFrameNumbers('platformSpriteSheet', {start: 0, end: 3}),
-            framerate: 5,
-        })
-        this.physics.add.collider(player, platforms);
-        buildPlatform()
+    platforms = this.physics.add.staticGroup();
+    player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
+    player.setBounce(0);
+    player.setCollideWorldBounds(true);
+    player.body.checkCollision.up = false
+    player.body.checkCollision.right = false
+    player.body.checkCollision.left = false
+    this.anims.create({
+        key: 'breathe',
+        frames: this.anims.generateFrameNumbers('playerSpriteSheet', {start: 0, end: 3}),
+        frameRate: 5,
+    });
+    this.anims.create({
+        key: 'move_right',
+        frames: this.anims.generateFrameNumbers('playerSpriteSheet', {start: 6, end: 9}),
+        frameRate: 6,
+    });
+    this.anims.create({
+        key: 'jump_straight',
+        frames: [{key: 'playerSpriteSheet', frame: 5}],
+        frameRate: 10
+    });
+    this.anims.create({
+        key: 'jump_right',
+        frames: [{key: 'playerSpriteSheet', frame: 4}],
+        frameRate: 10
+    })
+    this.anims.create({
+        key: 'click',
+        frames: this.anims.generateFrameNumbers('playerSpriteSheet', {start: 10, end: 14}),
+        frameRate: 6,
+    })
+    this.anims.create({
+        key: 'platform',
+        frames: this.anims.generateFrameNumbers('platformSpriteSheet', {start: 0, end: 3}),
+        framerate: 5,
+    })
+    this.physics.add.collider(player, platforms);
+    buildPlatform()
 
     // anchors.forEach((element) => {
     //     const dim = element.getBoundingClientRect()
@@ -180,6 +187,10 @@ function checkIfGrounded() {
     isGrounded = player.body.blocked.down
     if (isGrounded) {
         numJumps = 0
+        player.startingX = player.x
+        player.startingY = player.y
+        player.startingScrollY = window.scrollY
+        player.startingScrollX = window.scrollX
     }
 }
 
@@ -190,6 +201,7 @@ function buildPlatform() {
         platform.startingX = platform.x
         platform.startingY = platform.y
         platform.startingScrollY = window.scrollY
+        platform.startingScrollX = window.scrollX
         platformSprites.push(platform)
         platform.anims.play('platform')
         canPlatform = false
@@ -222,11 +234,14 @@ function anchorClickHandler() {
     const anchorCollided = anchorBodies.find((anchorBody) => {
         return checkOverlap(player, anchorBody)
     })
-    if (keys.Enter && anchorCollided) {
+    if (keys.Enter && anchorCollided && canClick) {
+        canClick = false;
         isCLicking = true;
         animate('click')
         anchorCollided.domElement.click()
         isCLicking = false;
+        console.log(anchorBodies)
+        setTimeout(()=>{canClick = true}, 300)
     }
 }
 
@@ -238,13 +253,6 @@ function clampScrollDivToPlayer() {
 function scrollToPlayer() {
     window.scrollTo(scrollDiv)
 }
-
-// function rebuildAnchorBodies() {
-//     anchors = []
-//     anchors = document.querySelectorAll('a[href]')
-//     isFirstTimeCallingCreateFunction = false
-//     create()
-// }
 
 function fullDocumentDims() {
     return {
@@ -258,37 +266,42 @@ function fullDocumentDims() {
             document.body.clientWidth, document.documentElement.clientWidth)
     }
 }
-function distance(x1,y1,x2,y2){
-    return Math.sqrt(Math.pow((x2-x1),2) + Math.pow((y2-y1),2))
+
+function distance(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2))
 }
-function anchorCenter(anchor){
+
+function anchorCenter(anchor) {
     let center = {};
     const dim = anchor.getBoundingClientRect()
     center.x = dim.left + dim.width / 2
     center.y = dim.top + dim.height / 2
     return center
 }
-function buildAnchorBody(anchor, scene){
+
+function buildAnchorBody(anchor, scene) {
     const included = (element) => element.domElement === anchor;
-    if(!anchorBodies.some(included)){
+    if (!anchorBodies.some(included)) {
         const dim = anchor.getBoundingClientRect()
-        const body = scene.add.rectangle(dim.x + dim.width/2, dim.y + dim.height/2, dim.width, dim.height, 0x6666ff)
-        // const body = scene.add.rectangle(dim.x + dim.width/2 + window.scrollX, dim.y + dim.height/2 - window.scrollY, dim.width, dim.height, 0x6666ff)
+        const body = scene.add.rectangle(dim.x + dim.width / 2, dim.y + dim.height / 2, dim.width, dim.height, 0x6666ff)
         body.domElement = anchor
         body.startingX = body.x
         body.startingY = body.y
         body.startingScrollY = window.scrollY
+        body.startingScrollX = window.scrollX
+        body.alpha = .3
         anchorBodies.push(body)
         //     body.setVisible(false)
         scene.physics.add.staticGroup(body)
         scene.physics.add.collider(player, body)
     }
 }
-function deleteAnchorBody(anchor){
+
+function deleteAnchorBody(anchor) {
     const included = (element) => element.domElement === anchor;
-    if(anchorBodies.some(included)){
-        anchorBodies.forEach((anchorBody)=>{
-            if(anchorBody.domElement === anchor){
+    if (anchorBodies.some(included)) {
+        anchorBodies.forEach((anchorBody) => {
+            if (anchorBody.domElement === anchor) {
                 anchorBody.destroy()
                 const index = anchorBodies.indexOf(anchorBody);
                 anchorBodies.splice(index, 1)
@@ -296,9 +309,52 @@ function deleteAnchorBody(anchor){
         })
     }
 }
-function isInRange(anchor, player){
+
+function isInRange(anchor, player) {
     const aCenter = anchorCenter(anchor)
     return distance(aCenter.x, aCenter.y, player.x, player.y) < 200
+}
+function checkIfBodySizeChanges(){
+    const currentHeight = fullDocumentDims().height
+    const currentWidth = fullDocumentDims().width
+    if( currentHeight !== bodySize.height || currentWidth !== bodySize.width){
+        bodySize.width = currentWidth
+        bodySize.height = currentHeight
+        anchorsInView = []
+        findAnchors()
+        deleteOldAnchorBodies()
+    }
+}
+function isOld(anchorBody){
+    let isOld = true;
+    anchorsInView.forEach((anchor)=>{
+        if(anchorBody.domElement === anchor){
+            isOld = false;
+        }
+    })
+    return isOld
+}
+function deleteOldAnchorBodies(){
+    const oldAnchorBodies = anchorBodies.filter(isOld)
+    oldAnchorBodies.forEach((anchorBody)=>{
+        anchorBody.destroy()
+        const index = anchorBodies.indexOf(anchorBody);
+        anchorBodies.splice(index, 1)
+    })
+
+    // anchorBodies.forEach((anchorBody)=>{
+    //     let isOld = true;
+    //     anchorsInView.forEach((anchor)=>{
+    //         if(anchorBody.domElement === anchor){
+    //             isOld = false
+    //         }
+    //     })
+    // //     if(isOld){
+    //         anchorBody.destroy()
+    //         const index = anchorBodies.indexOf(anchorBody);
+    //         anchorBodies.splice(index, 1)
+    //     }
+    // })
 }
 function update() {
     clampScrollDivToPlayer()
@@ -306,32 +362,27 @@ function update() {
     platformHandler()
     movementHandler()
     checkIfGrounded()
+    checkIfBodySizeChanges()
+
+    // console.log(player.x + ', ' + player.y)
 
     const scene = this
-    anchorsInView.forEach((anchor)=>{
-        if(isInRange(anchor, player)) {
+    anchorsInView.forEach((anchor) => {
+        if (isInRange(anchor, player)) {
             buildAnchorBody(anchor, scene)
-        }else{
+        } else {
             deleteAnchorBody(anchor);
         }
     })
+    if(keys.z){
+        console.log(anchorBodies)
+    }
 }
 
-function findAnchors(){
-   const windowTop = window.scrollY;
-   const windowBottom = canvasDiv.offsetHeight + window.scrollY;
-   document.querySelectorAll('a[href]').forEach((anchor)=>{
-       if(anchor.getBoundingClientRect().top >= windowTop && anchor.getBoundingClientRect().top <= windowBottom){
-           anchorsInView.push(anchor)
-       }
-   })
-}
+
 
 window.onload = function () {
-    // const fullDims = fullDocumentDims()
-    // anchors = document.querySelectorAll('a[href]')
-    // canvasDiv.style.height = fullDims.height + 'px'
-    // canvasDiv.style.width = fullDims.width + 'px'
+    bodySize = fullDocumentDims()
     canvasDiv = document.createElement('div')
     canvasDiv.id = 'canvas-div'
     document.body.appendChild(canvasDiv)
@@ -359,44 +410,67 @@ window.onload = function () {
             preload: preload,
             create: create,
             update: update
+        },
+        audio: {
+            noAudio: true
         }
     }
     game = new Phaser.Game(config);
 }
 
-window.onunload = function (){
-    game.destroy(true,true)
+window.onunload = function () {
+    game.destroy(true, true)
 }
+function isVisible(element){
+    if(!element.offsetParent){
+        return true
+    }
+    return element.offsetTop - element.offsetParent.scrollTop > 0 && element.offsetTop - element.offsetParent.scrollTop < element.offsetParent.clientHeight
+}
+function combineArrays(arrayA, arrayB){
+    let fullArray = arrayA
+    arrayB.forEach((el)=>{
+        fullArray.push(el)
+    })
+    return fullArray
+}
+function findAnchors() {
+    anchorsInView = Array.from(document.querySelectorAll('a[href]')).filter(isVisible)
+    buttonsInView = Array.from(document.querySelectorAll('[role="button"]')).filter(isVisible)
+    //TODO: make a "clickables" array instead of "anchorsInView"
+    anchorsInView = combineArrays(anchorsInView, buttonsInView)
+}
+
 
 window.addEventListener("keydown", function (event) {
     keys[event.key] = true;
-    // console.log(event.key)
 });
 window.addEventListener("keyup", function (event) {
     keys[event.key] = false;
 });
+function shiftBody(body){
+    if (body && body.body) {
+        body.setPosition(body.startingX - (window.scrollX - body.startingScrollX), body.startingY - (window.scrollY - body.startingScrollY))
+        body.body.y = (body.startingY - (window.scrollY - body.startingScrollY) - body.height / 2)
+        body.body.x = (body.startingX - (window.scrollX - body.startingScrollX) - body.width / 2)
+    }
+}
 window.addEventListener("scroll", function (event) {
-    // canvasDiv.style.top = window.scrollY + 'px'
-    // platforms.children.entries.forEach((platform)=>{
-    //     platform.setPosition(platform.startingX, platform.startingY - window.scrollY)
-    // })
-
-    platformSprites.forEach((platform)=>{
-        if(platform && platform.body){
-            platform.setPosition(platform.startingX, platform.startingY - (window.scrollY - platform.startingScrollY))
-            platform.body.y = (platform.startingY - (window.scrollY - platform.startingScrollY))
-        }
+    platformSprites.forEach((platform) => {
+        shiftBody(platform)
     })
-    anchorBodies.forEach((anchorBody)=>{
-        if(anchorBody && anchorBody.body){
-            anchorBody.setPosition(anchorBody.startingX, anchorBody.startingY - (window.scrollY- anchorBody.startingScrollY))
-            anchorBody.body.y = (anchorBody.startingY - (window.scrollY-anchorBody.startingScrollY))
-        }
+    anchorBodies.forEach((anchorBody) => {
+        shiftBody(anchorBody)
     })
+    if(isGrounded){
+        shiftBody(player)
+    }
     anchorsInView = []
     findAnchors()
 });
-// window.addEventListener('resize', function (event) {
-//     rebuildAnchorBodies()
-// })
+window.addEventListener('resize', function (event) {
+    //TODO: On resize adjust game canvas dims
+    anchorsInView = []
+    findAnchors()
+})
 
