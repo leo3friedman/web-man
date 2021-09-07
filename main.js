@@ -32,6 +32,7 @@ function preload() {
         frameWidth: 40,
         frameHeight: 37
     });
+
     this.load.spritesheet('platformSpriteSheet', resolveUrl('assets/platform_sprite_sheet.png'), {
         frameWidth: 60,
         frameHeight: 10
@@ -241,7 +242,9 @@ function anchorClickHandler() {
         anchorCollided.domElement.click()
         isCLicking = false;
         console.log(anchorBodies)
-        setTimeout(()=>{canClick = true}, 300)
+        setTimeout(() => {
+            canClick = true
+        }, 300)
     }
 }
 
@@ -314,10 +317,11 @@ function isInRange(anchor, player) {
     const aCenter = anchorCenter(anchor)
     return distance(aCenter.x, aCenter.y, player.x, player.y) < 200
 }
-function checkIfBodySizeChanges(){
+
+function checkIfBodySizeChanges() {
     const currentHeight = fullDocumentDims().height
     const currentWidth = fullDocumentDims().width
-    if( currentHeight !== bodySize.height || currentWidth !== bodySize.width){
+    if (currentHeight !== bodySize.height || currentWidth !== bodySize.width) {
         bodySize.width = currentWidth
         bodySize.height = currentHeight
         anchorsInView = []
@@ -325,46 +329,34 @@ function checkIfBodySizeChanges(){
         deleteOldAnchorBodies()
     }
 }
-function isOld(anchorBody){
+
+
+function isOld(anchorBody) {
     let isOld = true;
-    anchorsInView.forEach((anchor)=>{
-        if(anchorBody.domElement === anchor){
+    anchorsInView.forEach((anchor) => {
+        if (anchorBody.domElement === anchor) {
             isOld = false;
         }
     })
     return isOld
 }
-function deleteOldAnchorBodies(){
+
+function deleteOldAnchorBodies() {
     const oldAnchorBodies = anchorBodies.filter(isOld)
-    oldAnchorBodies.forEach((anchorBody)=>{
+    oldAnchorBodies.forEach((anchorBody) => {
         anchorBody.destroy()
         const index = anchorBodies.indexOf(anchorBody);
         anchorBodies.splice(index, 1)
     })
-
-    // anchorBodies.forEach((anchorBody)=>{
-    //     let isOld = true;
-    //     anchorsInView.forEach((anchor)=>{
-    //         if(anchorBody.domElement === anchor){
-    //             isOld = false
-    //         }
-    //     })
-    // //     if(isOld){
-    //         anchorBody.destroy()
-    //         const index = anchorBodies.indexOf(anchorBody);
-    //         anchorBodies.splice(index, 1)
-    //     }
-    // })
 }
+
 function update() {
     clampScrollDivToPlayer()
     anchorClickHandler()
     platformHandler()
     movementHandler()
     checkIfGrounded()
-    checkIfBodySizeChanges()
-
-    // console.log(player.x + ', ' + player.y)
+    // checkIfBodySizeChanges()
 
     const scene = this
     anchorsInView.forEach((anchor) => {
@@ -374,11 +366,17 @@ function update() {
             deleteAnchorBody(anchor);
         }
     })
-    if(keys.z){
-        console.log(anchorBodies)
+    if (keys.z) {
+        // console.log(anchorBodies)
+        // console.log(game.config)
+        // const a = document.querySelector('[href="/search?biw=1562&bih=888&q=google.com+search&sa=X&ved=2ahUKEwjOgYLG3u3yAhUoHTQIHS8FBJ4Q1QIwDHoECBEQAQ"]')
+        // isVisible(a)
+        // anchorsInView = []
+        // findAnchors()
+        // deleteOldAnchorBodies()
+        // console.log(anchorsInView)
     }
 }
-
 
 
 window.onload = function () {
@@ -421,19 +419,36 @@ window.onload = function () {
 window.onunload = function () {
     game.destroy(true, true)
 }
-function isVisible(element){
-    if(!element.offsetParent){
-        return true
-    }
-    return element.offsetTop - element.offsetParent.scrollTop > 0 && element.offsetTop - element.offsetParent.scrollTop < element.offsetParent.clientHeight
-}
-function combineArrays(arrayA, arrayB){
+
+// function isVisible(element) {
+//     if (!element.offsetParent) {
+//         return true
+//     }
+//     return element.offsetTop - element.offsetParent.scrollTop > 0 && element.offsetTop - element.offsetParent.scrollTop < element.offsetParent.clientHeight
+// }
+// anchorsInView = Array.from(document.querySelectorAll('a[href]')).filter(isVisible)
+// buttonsInView = Array.from(document.querySelectorAll('[role="button"]')).filter(isVisible)
+
+
+function combineArrays(arrayA, arrayB) {
     let fullArray = arrayA
-    arrayB.forEach((el)=>{
+    arrayB.forEach((el) => {
         fullArray.push(el)
     })
     return fullArray
 }
+
+function isVisible(element){
+    // const pos = element.getBoundingClientRect()
+    let center = anchorCenter(element)
+    // const elementsAtPos = document.elementsFromPoint(pos.x, pos.y)
+    const elementsAtPos = document.elementsFromPoint(center.x, center.y)
+    const anchorChecking = element
+    return elementsAtPos.some((el)=>{
+        return el === anchorChecking
+    })
+}
+
 function findAnchors() {
     anchorsInView = Array.from(document.querySelectorAll('a[href]')).filter(isVisible)
     buttonsInView = Array.from(document.querySelectorAll('[role="button"]')).filter(isVisible)
@@ -448,13 +463,15 @@ window.addEventListener("keydown", function (event) {
 window.addEventListener("keyup", function (event) {
     keys[event.key] = false;
 });
-function shiftBody(body){
+
+function shiftBody(body) {
     if (body && body.body) {
         body.setPosition(body.startingX - (window.scrollX - body.startingScrollX), body.startingY - (window.scrollY - body.startingScrollY))
         body.body.y = (body.startingY - (window.scrollY - body.startingScrollY) - body.height / 2)
         body.body.x = (body.startingX - (window.scrollX - body.startingScrollX) - body.width / 2)
     }
 }
+
 window.addEventListener("scroll", function (event) {
     platformSprites.forEach((platform) => {
         shiftBody(platform)
@@ -462,7 +479,7 @@ window.addEventListener("scroll", function (event) {
     anchorBodies.forEach((anchorBody) => {
         shiftBody(anchorBody)
     })
-    if(isGrounded){
+    if (isGrounded) {
         shiftBody(player)
     }
     anchorsInView = []
@@ -472,5 +489,21 @@ window.addEventListener('resize', function (event) {
     //TODO: On resize adjust game canvas dims
     anchorsInView = []
     findAnchors()
+    const newHeight = window.innerHeight
+    const newWidth = window.innerWidth
+    if(canvasDiv){
+        canvasDiv.style.height = newHeight + 'px'
+        canvasDiv.style.width = newWidth + 'px'
+    }
 })
+function clickEvent(){
+    //TODO: change from delay to 'when the page changes'
+    setTimeout(()=>{
+        console.log('clicked')
+        anchorsInView = []
+        findAnchors()
+        deleteOldAnchorBodies()}, 1000)
+}
+
+window.addEventListener('click', clickEvent);
 
