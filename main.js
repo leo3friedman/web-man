@@ -314,8 +314,14 @@ function deleteAnchorBody(anchor) {
 }
 
 function isInRange(anchor, player) {
+    // return Math.sqrt(anchor.getBoundingClientRect().top - player.y) < 200
     const aCenter = anchorCenter(anchor)
-    return distance(aCenter.x, aCenter.y, player.x, player.y) < 200
+    const elementDims = anchor.getBoundingClientRect()
+    const centerTopDist = distance(aCenter.x, aCenter.y - elementDims.height/2, player.x, player.y)
+    const rightTopDist = distance(aCenter.x+elementDims.width/2, aCenter.y - elementDims.height/2, player.x, player.y)
+    const leftTopDist = distance(aCenter.x-elementDims.width/2, aCenter.y - elementDims.height/2, player.x, player.y)
+    return (Math.min(centerTopDist, rightTopDist, leftTopDist) < 200)
+    // return distance(aCenter.x, aCenter.y, player.x, player.y) < 200
 }
 
 function checkIfBodySizeChanges() {
