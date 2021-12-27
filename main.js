@@ -44,7 +44,7 @@ function preload() {
         frameHeight: 20
     });
 
-    this.load.spritesheet('startingPlatformSpriteSheet', resolveUrl('assets/starting_platform.png'), {
+    this.load.spritesheet('startingPlatformSpriteSheet', resolveUrl('assets/starting_platform2.png'), {
         frameWidth: 318,
         frameHeight: 234
     })
@@ -53,7 +53,7 @@ function preload() {
 function create() {
     platforms = this.physics.add.staticGroup();
     buildStartingPlatform()
-    player = this.physics.add.sprite(window.innerWidth * 2 - 400, 180, 'playerSpriteSheet');
+    player = this.physics.add.sprite(window.innerWidth * 2 - 318, 180, 'playerSpriteSheet');
     player.setDepth(999);
     player.setBounce(0);
     player.setCollideWorldBounds(true);
@@ -235,7 +235,7 @@ function buildPlatform() {
 }
 
 function buildStartingPlatform(){
-    const platform = platforms.create(window.innerWidth * 2 - 318, 117, 'startingPlatformSpriteSheet')
+    const platform = platforms.create(window.innerWidth * 2 - 318, 115, 'startingPlatformSpriteSheet')
     platform.setSize(318-removeDist, 10).setOffset(removeDist/2, 224);
 }
 
@@ -477,7 +477,6 @@ function main(){
     chrome.storage.sync.get({sleepMode: false}, function (result) {
         if(!result.sleepMode){
             window.WWWW = {};
-            // window.onload = function () {
                 bodySize = fullDocumentDims()
                 canvasDiv = document.createElement('div')
                 canvasDiv.id = 'canvas-div'
@@ -522,7 +521,6 @@ function main(){
                 }
                 game = new Phaser.Game(config);
                 window.WWWW.game = game
-            // }
 
             window.onunload = function () {
                     console.log("unloaded");
@@ -570,7 +568,6 @@ function main(){
         } else {
             console.log("sleeping");
             typeof game != "undefined" ? game.destroy(true, false) : console.log("game not created yet")
-
         }
     })
 }
