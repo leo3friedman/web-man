@@ -403,6 +403,8 @@ function update() {
     window.WWWW.anchorBodies = anchorBodies;
     //Just a key to press to check/test any behavior
     if (keys.z) {
+        console.log(player.body.checkWorldBounds());
+        console.log(player.body.)
         // console.log("now: " + player.body.y)
         // console.log(anchorBodies)
         // console.log(game.config)
