@@ -34,12 +34,6 @@ function resolveUrl(url) {
 
 function preload() {
     // TODO: test that this still works in the chrome extension
-    // this.load.spritesheet('playerSpriteSheet', resolveUrl('assets/player_sprite_sheet_2.png'), {
-    //     frameWidth: 40,
-    //     frameHeight: 37
-    // });
-    console.log("preload")
-
     this.load.spritesheet('playerSpriteSheet', resolveUrl('assets/player_sprite_sheet.png'), {
         frameWidth: 80,
         frameHeight: 74
@@ -49,14 +43,17 @@ function preload() {
         frameWidth: 120,
         frameHeight: 20
     });
+
+    this.load.spritesheet('startingPlatformSpriteSheet', resolveUrl('assets/starting_platform.png'), {
+        frameWidth: 318,
+        frameHeight: 234
+    })
 }
 
 function create() {
     platforms = this.physics.add.staticGroup();
     player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
-    // player.setScale(.5,.5);
-    // player.scaleX = .5;
-    // player.scaleY = .5;
+    player.setDepth(999);
     player.setBounce(0);
     player.setCollideWorldBounds(true);
     player.body.checkCollision.up = false
@@ -94,6 +91,7 @@ function create() {
     })
     this.physics.add.collider(player, platforms);
     buildPlatform()
+    buildStartingPlatform()
 
     // anchors.forEach((element) => {
     //     const dim = element.getBoundingClientRect()
@@ -216,11 +214,13 @@ function checkIfGrounded() {
     }
 }
 
+const removeDist = 20;
 function buildPlatform() {
     //TODO: why is isGrounded true when recreating game (Starting platform doesn't form)
     if (canPlatform && !isGrounded) {
         let platformOffset = player.body.velocity.y > 0 ? 100 : 60
         const platform = platforms.create(player.x, player.y + platformOffset, 'platformSpriteSheet')
+        platform.setSize(120 - removeDist, 10).setOffset(removeDist/2, 10);
         platform.startingX = platform.x
         platform.startingY = platform.y
         platform.startingScrollY = window.scrollY
@@ -232,6 +232,16 @@ function buildPlatform() {
             canPlatform = true
         }, 300)
     }
+}
+
+function buildStartingPlatform(){
+    const platform = platforms.create(window.innerWidth * 2 - 318, 117, 'startingPlatformSpriteSheet')
+    platform.setSize(318-removeDist, 10).setOffset(removeDist/2, 224);
+    console.log(platform.body.x + ', ' + platform.body.y)
+    platform.startingX = platform.x
+    platform.startingY = platform.y
+    platform.startingScrollY = window.scrollY
+    platform.startingScrollX = window.scrollX
 }
 
 function destroyPlatforms() {
