@@ -17,6 +17,12 @@ let game
 let bodySize;
 let canClick = true;
 
+//TODO: Add "sleep mode"
+const defaultSettings = {
+     sleepMode : false
+}
+
+
 // TODO: is there a better way to detect that we're in a chrome extension
 function isInExtension() {
     return chrome && chrome.runtime && chrome.runtime.getURL
@@ -28,20 +34,29 @@ function resolveUrl(url) {
 
 function preload() {
     // TODO: test that this still works in the chrome extension
-    this.load.spritesheet('playerSpriteSheet', resolveUrl('assets/player_sprite_sheet_2.png'), {
-        frameWidth: 40,
-        frameHeight: 37
+    // this.load.spritesheet('playerSpriteSheet', resolveUrl('assets/player_sprite_sheet_2.png'), {
+    //     frameWidth: 40,
+    //     frameHeight: 37
+    // });
+    console.log("preload")
+
+    this.load.spritesheet('playerSpriteSheet', resolveUrl('assets/player_sprite_sheet.png'), {
+        frameWidth: 80,
+        frameHeight: 74
     });
 
     this.load.spritesheet('platformSpriteSheet', resolveUrl('assets/platform_sprite_sheet.png'), {
-        frameWidth: 60,
-        frameHeight: 10
+        frameWidth: 120,
+        frameHeight: 20
     });
 }
 
 function create() {
     platforms = this.physics.add.staticGroup();
     player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
+    // player.setScale(.5,.5);
+    // player.scaleX = .5;
+    // player.scaleY = .5;
     player.setBounce(0);
     player.setCollideWorldBounds(true);
     player.body.checkCollision.up = false
@@ -151,9 +166,15 @@ function movementHandler() {
     }
 }
 
+const jumpVelocity = -750
+const groundedXYSpeed = 50
+const groundedMaxXYSpeed = 600
+const airXYSpeed = 35
+const airMaxXYSpeed = 400
+
 function jump() {
     if (canJump) {
-        player.setVelocityY(-500);
+        player.setVelocityY(jumpVelocity);
         canJump = false
         numJumps += 1;
         // console.log(numJumps)
@@ -166,16 +187,16 @@ function jump() {
 function moveLeft() {
     player.flipX = true
     player.setVelocityX(Math.min(0, player.body.velocity.x))
-    const increment = isGrounded ? 30 : 20
-    const maxVel = isGrounded ? 300 : 200
+    const increment = isGrounded ? groundedXYSpeed : airXYSpeed
+    const maxVel = isGrounded ? groundedMaxXYSpeed : airMaxXYSpeed
     const vel = Math.max(player.body.velocity.x - increment, -maxVel)
     player.setVelocityX(vel);
 }
 
 function moveRight() {
     player.setVelocityX(Math.max(0, player.body.velocity.x))
-    const increment = isGrounded ? 30 : 20
-    const maxVel = isGrounded ? 300 : 200
+    const increment = isGrounded ? groundedXYSpeed : airXYSpeed
+    const maxVel = isGrounded ? groundedMaxXYSpeed : airMaxXYSpeed
     const vel = Math.min(player.body.velocity.x + increment, maxVel)
     player.setVelocityX(vel);
 }
@@ -196,8 +217,9 @@ function checkIfGrounded() {
 }
 
 function buildPlatform() {
+    //TODO: why is isGrounded true when recreating game (Starting platform doesn't form)
     if (canPlatform && !isGrounded) {
-        let platformOffset = player.body.velocity.y > 0 ? 50 : 20
+        let platformOffset = player.body.velocity.y > 0 ? 100 : 60
         const platform = platforms.create(player.x, player.y + platformOffset, 'platformSpriteSheet')
         platform.startingX = platform.x
         platform.startingY = platform.y
@@ -286,7 +308,7 @@ function buildAnchorBody(anchor, scene) {
     const included = (element) => element.domElement === anchor;
     if (!anchorBodies.some(included)) {
         const dim = anchor.getBoundingClientRect()
-        const body = scene.add.rectangle(dim.x + dim.width / 2, dim.y + dim.height / 2, dim.width, dim.height, 0x6666ff)
+        const body = scene.add.rectangle((dim.x + dim.width / 2 ) * window.devicePixelRatio, (dim.y + dim.height / 2) * window.devicePixelRatio, dim.width * window.devicePixelRatio, dim.height * window.devicePixelRatio, 0x6666ff)
         body.domElement = anchor
         body.startingX = body.x
         body.startingY = body.y
@@ -313,13 +335,14 @@ function deleteAnchorBody(anchor) {
     }
 }
 
+//TODO: check if border is in range, not center
 function isInRange(anchor, player) {
     // return Math.sqrt(anchor.getBoundingClientRect().top - player.y) < 200
     const aCenter = anchorCenter(anchor)
     const elementDims = anchor.getBoundingClientRect()
     const centerTopDist = distance(aCenter.x, aCenter.y - elementDims.height/2, player.x, player.y)
-    const rightTopDist = distance(aCenter.x+elementDims.width/2, aCenter.y - elementDims.height/2, player.x, player.y)
-    const leftTopDist = distance(aCenter.x-elementDims.width/2, aCenter.y - elementDims.height/2, player.x, player.y)
+    const rightTopDist = distance(aCenter.x+elementDims.width/2, aCenter.y - elementDims.height/2, player.x / window.devicePixelRatio, player.y / window.devicePixelRatio)
+    const leftTopDist = distance(aCenter.x-elementDims.width/2, aCenter.y - elementDims.height/2, player.x / window.devicePixelRatio, player.y / window.devicePixelRatio)
     return (Math.min(centerTopDist, rightTopDist, leftTopDist) < 200)
     // return distance(aCenter.x, aCenter.y, player.x, player.y) < 200
 }
@@ -372,7 +395,10 @@ function update() {
             deleteAnchorBody(anchor);
         }
     })
+    window.WWWW.anchorBodies = anchorBodies;
+    //Just a key to press to check/test any behavior
     if (keys.z) {
+        // console.log("now: " + player.body.y)
         // console.log(anchorBodies)
         // console.log(game.config)
         // const a = document.querySelector('[href="/search?biw=1562&bih=888&q=google.com+search&sa=X&ved=2ahUKEwjOgYLG3u3yAhUoHTQIHS8FBJ4Q1QIwDHoECBEQAQ"]')
@@ -385,46 +411,7 @@ function update() {
 }
 
 
-window.onload = function () {
-    bodySize = fullDocumentDims()
-    canvasDiv = document.createElement('div')
-    canvasDiv.id = 'canvas-div'
-    document.body.appendChild(canvasDiv)
 
-    scrollDiv = document.createElement('div')
-    scrollDiv.id = 'scroll-div'
-    canvasDiv.appendChild(scrollDiv)
-
-    findAnchors()
-
-    const config = {
-        type: Phaser.AUTO,
-        width: canvasDiv.offsetWidth,
-        height: canvasDiv.offsetHeight,
-        parent: 'canvas-div',
-        transparent: true,
-        physics: {
-            default: 'arcade',
-            arcade: {
-                gravity: {y: 1100},
-                debug: false
-            }
-        },
-        scene: {
-            preload: preload,
-            create: create,
-            update: update
-        },
-        audio: {
-            noAudio: true
-        }
-    }
-    game = new Phaser.Game(config);
-}
-
-window.onunload = function () {
-    game.destroy(true, true)
-}
 
 // function isVisible(element) {
 //     if (!element.offsetParent) {
@@ -462,46 +449,15 @@ function findAnchors() {
     anchorsInView = combineArrays(anchorsInView, buttonsInView)
 }
 
-
-window.addEventListener("keydown", function (event) {
-    keys[event.key] = true;
-});
-window.addEventListener("keyup", function (event) {
-    keys[event.key] = false;
-});
-
+//TODO: Smooth out shift/scroll
 function shiftBody(body) {
     if (body && body.body) {
-        body.setPosition(body.startingX - (window.scrollX - body.startingScrollX), body.startingY - (window.scrollY - body.startingScrollY))
-        body.body.y = (body.startingY - (window.scrollY - body.startingScrollY) - body.height / 2)
-        body.body.x = (body.startingX - (window.scrollX - body.startingScrollX) - body.width / 2)
+        body.setPosition(body.startingX - (window.scrollX - body.startingScrollX) * window.devicePixelRatio, body.startingY - (window.scrollY - body.startingScrollY) * window.devicePixelRatio)
+        body.body.y = (body.startingY - (window.scrollY - body.startingScrollY) * window.devicePixelRatio - body.height / 2)
+        body.body.x = (body.startingX - (window.scrollX - body.startingScrollX) * window.devicePixelRatio - body.width / 2)
     }
 }
 
-window.addEventListener("scroll", function (event) {
-    platformSprites.forEach((platform) => {
-        shiftBody(platform)
-    })
-    anchorBodies.forEach((anchorBody) => {
-        shiftBody(anchorBody)
-    })
-    if (isGrounded) {
-        shiftBody(player)
-    }
-    anchorsInView = []
-    findAnchors()
-});
-window.addEventListener('resize', function (event) {
-    //TODO: On resize adjust game canvas dims
-    anchorsInView = []
-    findAnchors()
-    const newHeight = window.innerHeight
-    const newWidth = window.innerWidth
-    if(canvasDiv){
-        canvasDiv.style.height = newHeight + 'px'
-        canvasDiv.style.width = newWidth + 'px'
-    }
-})
 function clickEvent(){
     //TODO: change from delay to 'when the page changes'
     setTimeout(()=>{
@@ -511,5 +467,115 @@ function clickEvent(){
         deleteOldAnchorBodies()}, 1000)
 }
 
-window.addEventListener('click', clickEvent);
+function main(){
+    //TODO: Listen for storage change (sleepMode) and if so, run main
+    chrome.storage.sync.get({sleepMode: false}, function (result) {
+        if(!result.sleepMode){
+            window.WWWW = {};
+            // window.onload = function () {
+                bodySize = fullDocumentDims()
+                canvasDiv = document.createElement('div')
+                canvasDiv.id = 'canvas-div'
+                document.body.appendChild(canvasDiv)
+
+                scrollDiv = document.createElement('div')
+                scrollDiv.id = 'scroll-div'
+                canvasDiv.appendChild(scrollDiv)
+
+                findAnchors()
+
+                const config = {
+                    type: Phaser.AUTO,
+                    width: canvasDiv.offsetWidth,
+                    height: canvasDiv.offsetHeight,
+                    parent: 'canvas-div',
+                    transparent: true,
+                    antialias: true,
+                    physics: {
+                        default: 'arcade',
+                        arcade: {
+                            gravity: {y: 1500},
+                            debug: false
+                        }
+                    },
+                    // FROM: https://supernapie.com/blog/support-retina-with-phaser-3/
+                    // TODO: handle resize
+                    scale: {
+                        mode: Phaser.Scale.NONE, // we will resize the game with our own code (see Boot.js)
+                        width: window.innerWidth * window.devicePixelRatio, // set game width by multiplying window width with devicePixelRatio
+                        height: window.innerHeight * window.devicePixelRatio, // set game height by multiplying window height with devicePixelRatio
+                        zoom: 1 / window.devicePixelRatio // Set the zoom to the inverse of the devicePixelRatio
+                    },
+                    scene: {
+                        preload: preload,
+                        create: create,
+                        update: update
+                    },
+                    audio: {
+                        noAudio: true
+                    }
+                }
+                game = new Phaser.Game(config);
+                window.WWWW.game = game
+            // }
+
+            window.onunload = function () {
+                    console.log("unloaded");
+                    if(typeof game != "undefined"){
+                        game.destroy(true, false)
+                    }
+            }
+
+            window.addEventListener("keydown", function (event) {
+                keys[event.key] = true;
+            });
+
+            window.addEventListener("keyup", function (event) {
+                keys[event.key] = false;
+            });
+
+            window.addEventListener("scroll", function (event) {
+                platformSprites.forEach((platform) => {
+                    shiftBody(platform)
+                })
+                anchorBodies.forEach((anchorBody) => {
+                    shiftBody(anchorBody)
+                })
+                if (isGrounded) {
+                    shiftBody(player)
+                }
+                anchorsInView = []
+                findAnchors()
+            });
+
+            window.addEventListener('resize', function (event) {
+                //TODO: On resize adjust game canvas dims
+                anchorsInView = []
+                findAnchors()
+                const newHeight = window.innerHeight
+                const newWidth = window.innerWidth
+                if(canvasDiv){
+                    canvasDiv.style.height = newHeight + 'px'
+                    canvasDiv.style.width = newWidth + 'px'
+                }
+            })
+
+            window.addEventListener('click', clickEvent);
+
+        } else {
+            console.log("sleeping");
+            typeof game != "undefined" ? game.destroy(true, false) : console.log("game not created yet")
+
+        }
+    })
+}
+
+chrome.storage.onChanged.addListener(function (changes, areaName) {
+    main();
+});
+
+window.onload = () => {
+    console.log("loaded");
+    main();
+}
 

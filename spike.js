@@ -7,9 +7,6 @@ const config = {
         create: create,
         update: update,
     },
-    // audio: {
-    //     noAudio: true
-    // }
 };
 
 const game = new Phaser.Game(config);
@@ -65,13 +62,13 @@ function update ()
 
     move()
     const scene = this
-    anchors.forEach((anchor)=>{
-        if(isInRange(anchor, player)) {
-            buildAnchorBody(anchor, scene)
-        }else{
-            deleteAnchorBody(anchor)
-        }
-    })
+    // anchors.forEach((anchor)=>{
+    //     if(isInRange(anchor, player)) {
+    //         buildAnchorBody(anchor, scene)
+    //     }else{
+    //         deleteAnchorBody(anchor)
+    //     }
+    // })
 }
 
 function move(){
@@ -97,5 +94,5 @@ let anchors = [];
 
 window.onload = function(){
     anchors = document.querySelectorAll('a[href]')
-
+    console.log("onload")
 }
