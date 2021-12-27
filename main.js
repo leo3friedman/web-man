@@ -52,7 +52,8 @@ function preload() {
 
 function create() {
     platforms = this.physics.add.staticGroup();
-    player = this.physics.add.sprite(100, 450, 'playerSpriteSheet');
+    buildStartingPlatform()
+    player = this.physics.add.sprite(window.innerWidth * 2 - 400, 180, 'playerSpriteSheet');
     player.setDepth(999);
     player.setBounce(0);
     player.setCollideWorldBounds(true);
@@ -90,8 +91,7 @@ function create() {
         framerate: 5,
     })
     this.physics.add.collider(player, platforms);
-    buildPlatform()
-    buildStartingPlatform()
+
 
     // anchors.forEach((element) => {
     //     const dim = element.getBoundingClientRect()
@@ -237,11 +237,6 @@ function buildPlatform() {
 function buildStartingPlatform(){
     const platform = platforms.create(window.innerWidth * 2 - 318, 117, 'startingPlatformSpriteSheet')
     platform.setSize(318-removeDist, 10).setOffset(removeDist/2, 224);
-    console.log(platform.body.x + ', ' + platform.body.y)
-    platform.startingX = platform.x
-    platform.startingY = platform.y
-    platform.startingScrollY = window.scrollY
-    platform.startingScrollX = window.scrollX
 }
 
 function destroyPlatforms() {
